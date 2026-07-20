@@ -33,6 +33,23 @@ MAX_BODY_BYTES = 2 * 1024 * 1024
 CODE_RE = re.compile(r'^[A-Z0-9]{6}$')
 USERNAME_RE = re.compile(r'^[a-zA-Z0-9_.-]{2,32}$')
 
+# Rate limit: max 10 tentativas de login por IP a cada 5 minutos
+_login_attempts = {}
+RATE_LIMIT_WINDOW = 300  # 5 minutos
+RATE_LIMIT_MAX = 10
+
+
+def _rate_limit_check(ip):
+    now = time.time()
+    attempts = _login_attempts.get(ip, [])
+    attempts = [t for t in attempts if now - t < RATE_LIMIT_WINDOW]
+    _login_attempts[ip] = attempts
+    return len(attempts) < RATE_LIMIT_MAX
+
+
+def _rate_limit_record(ip):
+    _login_attempts.setdefault(ip, []).append(time.time())
+
 
 def gerar_codigo():
     alfabeto = string.ascii_uppercase + string.digits
@@ -45,11 +62,26 @@ class SyncHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.send_header('Content-Length', str(len(body)))
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Origin', self._allowed_origin())
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        self.send_header('X-Frame-Options', 'DENY')
+        self.send_header('Referrer-Policy', 'strict-origin-when-cross-origin')
         self.end_headers()
         self.wfile.write(body)
+
+    def _allowed_origin(self):
+        origin = self.headers.get('Origin', '')
+        host = self.headers.get('Host', '')
+        # Permite same-origin e localhost (dev)
+        if not origin:
+            return '*'
+        if origin.endswith(host):
+            return origin
+        if 'localhost' in origin or '127.0.0.1' in origin:
+            return origin
+        return f'http://{host}'
 
     def _read_json(self):
         length = int(self.headers.get('Content-Length', 0))
@@ -70,9 +102,10 @@ class SyncHandler(http.server.BaseHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.send_response(204)
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Origin', self._allowed_origin())
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('Content-Length', '0')
         self.end_headers()
 
@@ -155,6 +188,11 @@ class SyncHandler(http.server.BaseHTTPRequestHandler):
         username = (body.get('usuario') or '').strip()
         senha = body.get('senha') or ''
 
+        # Rate limit por IP
+        ip = self.headers.get('X-Forwarded-For', self.client_address[0]).split(',')[0].strip()
+        if not _rate_limit_check(ip):
+            return self._json(429, {'ok': False, 'error': 'muitas tentativas, aguarde 5 minutos'})
+
         conn = db.get_conn()
         row = conn.execute(
             'SELECT password_hash FROM users WHERE couple_code=? AND username=?', (code, username)
@@ -162,6 +200,7 @@ class SyncHandler(http.server.BaseHTTPRequestHandler):
         conn.close()
 
         if not row or not auth.verify_password(senha, row['password_hash']):
+            _rate_limit_record(ip)
             return self._json(401, {'ok': False, 'error': 'usuário, senha ou código incorretos'})
 
         token = auth.jwt_encode({'sub': username, 'couple': code})
