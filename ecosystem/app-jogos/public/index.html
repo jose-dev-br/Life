@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jornada do Casal — Jogos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fraunces:opsz,wght@9..144,500..700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Nunito', sans-serif; background: #faf1ee; color: #4a3634; min-height: 100vh; display: flex; justify-content: center; padding: 24px 14px; }
+    .container { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 16px; }
+    .back { font-size: 13px; color: #a8938e; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; text-decoration: none; }
+    .card { background: #fffdfc; border-radius: 20px; border: 1.5px solid #f0ddd6; box-shadow: 0 2px 12px rgba(180,120,110,0.07); padding: 24px; text-align: center; }
+    .title { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 600; }
+    .games { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+    .game-card { background: #faf1ee; border: 1.5px solid #f0ddd6; border-radius: 16px; padding: 18px 12px; text-align: center; }
+    .game-icon { font-size: 32px; margin-bottom: 6px; }
+    .game-name { font-size: 13px; font-weight: 700; }
+    .game-desc { font-size: 11px; color: #a8938e; margin-top: 2px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/hub.html" class="back">← voltar ao hub</a>
+    <div class="title">🎮 Jogos</div>
+
+    <div class="card">
+      <div style="font-size:12px;color:#a8938e;margin-bottom:12px;">Escolha um jogo pra jogar juntos</div>
+      <div class="games">
+        <div class="game-card">
+          <div class="game-icon">🐍</div>
+          <div class="game-name">Snake</div>
+          <div class="game-desc">classico</div>
+        </div>
+        <div class="game-card">
+          <div class="game-icon">🎲</div>
+          <div class="game-name">Ludo</div>
+          <div class="game-desc">tabuleiro</div>
+        </div>
+        <div class="game-card">
+          <div class="game-icon">🫧</div>
+          <div class="game-name">Bubble</div>
+          <div class="game-desc">pop pop</div>
+        </div>
+        <div class="game-card">
+          <div class="game-icon">📖</div>
+          <div class="game-name">Pokedex</div>
+          <div class="game-desc">colecao</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:13px;font-weight:800;">🎖️ Conquistas</div>
+      <div style="font-size:12px;color:#a8938e;margin-top:4px;">5 de 15 desbloqueadas</div>
+      <div style="background:#f5e6e1;border-radius:999px;overflow:hidden;height:6px;margin-top:8px;">
+        <div style="width:33%;height:100%;background:#a87fd9;border-radius:999px;"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,24 @@
+:80 {
+	# API do servidor central — auth, dados, tudo que qualquer app precisa
+	handle /api/* {
+		reverse_proxy servidor-central:8000
+	}
+
+	# cada app fica no seu próprio caminho
+	handle_path /diario/* {
+		reverse_proxy app-diario:80
+	}
+
+	handle_path /jogos/* {
+		reverse_proxy app-jogos:80
+	}
+
+	handle_path /saude/* {
+		reverse_proxy app-saude:80
+	}
+
+	# raiz = App Central (login + hub)
+	handle {
+		reverse_proxy app-central:80
+	}
+}

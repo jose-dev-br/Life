@@ -1,0 +1,52 @@
+services:
+  # ☁️ Servidor central — o mesmo server.py de sempre, dono do banco (SQLite)
+  # e da autenticação. Nenhum frontend fala com ele fora da rede interna do
+  # compose; só o proxy é exposto pra fora.
+  servidor-central:
+    build: ./ecosystem/servidor-central
+    volumes:
+      - dados_app:/app/data
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  app-central:
+    build: ./ecosystem/app-central
+    expose:
+      - "80"
+    restart: unless-stopped
+
+  app-diario:
+    build: ./ecosystem/app-diario
+    expose:
+      - "80"
+    restart: unless-stopped
+
+  app-jogos:
+    build: ./ecosystem/app-jogos
+    expose:
+      - "80"
+    restart: unless-stopped
+
+  app-saude:
+    build: ./ecosystem/app-saude
+    expose:
+      - "80"
+    restart: unless-stopped
+
+  proxy:
+    image: caddy:2-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./ecosystem/proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - servidor-central
+      - app-central
+      - app-diario
+      - app-jogos
+      - app-saude
+    restart: unless-stopped
+
+volumes:
+  dados_app:

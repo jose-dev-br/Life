@@ -1,0 +1,113 @@
+"""
+db.py — SQLite como fonte única de verdade, no lugar do events.jsonl por
+arquivo. Com 3 frontends podendo escrever ao mesmo tempo, um arquivo só
+sem transação virava risco de corrida; SQLite com WAL resolve isso de
+graça, sem precisar de Postgres nem de um container a mais.
+"""
+import sqlite3
+import os
+import threading
+
+DB_PATH = os.environ.get('JORNADA_DB_PATH', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'jornada.db'))
+
+_lock = threading.Lock()
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS couples (
+    code TEXT PRIMARY KEY,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    couple_code TEXT NOT NULL REFERENCES couples(code) ON DELETE CASCADE,
+    username TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(couple_code, username)
+);
+
+CREATE TABLE IF NOT EXISTS events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    couple_code TEXT NOT NULL REFERENCES couples(code) ON DELETE CASCADE,
+    event_id TEXT NOT NULL,
+    type TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(couple_code, event_id)
+);
+CREATE INDEX IF NOT EXISTS idx_events_couple ON events(couple_code, id);
+
+CREATE TABLE IF NOT EXISTS profiles (
+    couple_code TEXT PRIMARY KEY REFERENCES couples(code) ON DELETE CASCADE,
+    data TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+-- Diário: perguntas do quiz
+CREATE TABLE IF NOT EXISTS quiz_questions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    couple_code TEXT NOT NULL REFERENCES couples(code) ON DELETE CASCADE,
+    pergunta TEXT NOT NULL,
+    opcoes TEXT NOT NULL,
+    resposta_correta TEXT,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_quiz_couple ON quiz_questions(couple_code, id);
+
+-- Diário: respostas dos dois ao quiz do dia
+CREATE TABLE IF NOT EXISTS quiz_answers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    couple_code TEXT NOT NULL REFERENCES couples(code) ON DELETE CASCADE,
+    question_id INTEGER NOT NULL REFERENCES quiz_questions(id) ON DELETE CASCADE,
+    username TEXT NOT NULL,
+    resposta TEXT NOT NULL,
+    previsao TEXT,
+    created_at TEXT NOT NULL,
+    UNIQUE(couple_code, question_id, username)
+);
+
+-- Diário: cartas de amor
+CREATE TABLE IF NOT EXISTS letters (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    couple_code TEXT NOT NULL REFERENCES couples(code) ON DELETE CASCADE,
+    from_user TEXT NOT NULL,
+    titulo TEXT NOT NULL DEFAULT '',
+    corpo TEXT NOT NULL,
+    lida INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_letters_couple ON letters(couple_code, id);
+
+-- Diário: humor diário
+CREATE TABLE IF NOT EXISTS moods (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    couple_code TEXT NOT NULL REFERENCES couples(code) ON DELETE CASCADE,
+    username TEXT NOT NULL,
+    humor TEXT NOT NULL,
+    nota INTEGER,
+    texto TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    UNIQUE(couple_code, username, created_at)
+);
+CREATE INDEX IF NOT EXISTS idx_moods_couple ON moods(couple_code, id);
+"""
+
+
+def get_conn():
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    conn = sqlite3.connect(DB_PATH, timeout=10, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    # WAL: leitores não bloqueiam escritores, essencial com múltiplos
+    # containers (app-diario, app-jogos, app-saude) batendo no mesmo banco.
+    conn.execute('PRAGMA journal_mode=WAL;')
+    conn.execute('PRAGMA foreign_keys=ON;')
+    return conn
+
+
+def init_db():
+    with _lock:
+        conn = get_conn()
+        conn.executescript(SCHEMA)
+        conn.commit()
+        conn.close()
