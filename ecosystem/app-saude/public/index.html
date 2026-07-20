@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Jornada do Casal — Saude</title>
+  <title>Jornada do Casal — Saúde</title>
+  <script src="/shared/store.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fraunces:opsz,wght@9..144,500..700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; }
@@ -19,6 +20,11 @@
   </style>
 </head>
 <body>
+  <script>
+    if (!sessionStorage.getItem('jwt')) {
+      window.location.href = '/';
+    }
+  </script>
   <div class="container">
     <a href="/hub.html" class="back">← voltar ao hub</a>
     <div class="title">🏋️ Saúde</div>

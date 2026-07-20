@@ -3,7 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Jornada do Casal — Quiz do Dia</title>
+  <title>Jornada do Casal — Diário</title>
+  <script src="/shared/api.js"></script>
+  <script src="/shared/store.js"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -14,19 +16,9 @@
 </head>
 <body>
   <div id="root"></div>
-  <script type="text/babel">
+  <script type="text/babel" src="/diario/js/quiz.js"></script>
+  <!--
     const { useState, useEffect, useCallback, useRef } = React;
-
-    const API = '/api';
-    const token = () => sessionStorage.getItem('jwt') || '';
-    const hds = () => ({ 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token() });
-
-    async function api(method, path, body) {
-      const opts = { method, headers: hds() };
-      if (body) opts.body = JSON.stringify(body);
-      const r = await fetch(API + path, opts);
-      return r.json();
-    }
 
     const PERGUNTAS = [
       { p: 'Se pudesse jantar em qualquer lugar do mundo, onde iriam?', o: ['🍕 Pizza em Nápoles', '🍣 Sushi no Japão', '🥘 Feijoada no Brasil', '🥐 Café em Paris'] },
@@ -50,7 +42,8 @@
       const [historico, setHistorico] = useState([]);
       const [sincronizando, setSincronizando] = useState(false);
       const [erro, setErro] = useState(null);
-      const user = sessionStorage.getItem('user') || '';
+      const auth = LifeStore.getAuth();
+      const user = auth.user || '';
       const carregandoRef = useRef(false);
 
       const carregar = useCallback(async () => {
@@ -58,21 +51,25 @@
         carregandoRef.current = true;
         setErro(null);
         try {
-          const [q, h] = await Promise.all([api('GET', '/diary/quiz/today'), api('GET', '/diary/quiz/history')]);
+          const [q, h] = await Promise.all([LifeAPI.diary.todayQuiz(), LifeAPI.diary.historyQuiz()]);
           if (q.ok) setQuiz(q.quiz);
-          if (h.ok) setHistorico(h.quizzes);
+          if (h.ok) setHistorico(h.quizzes || []);
           if (q.ok && q.quiz) {
             if (q.quiz.answers[user]) setEtapa('respondido');
             else setEtapa('responder');
           }
         } catch (e) {
-          setErro('Erro ao carregar dados');
+          setErro(e.message || 'Erro ao carregar dados');
         } finally {
           carregandoRef.current = false;
         }
       }, [user]);
 
       useEffect(() => {
+        if (!LifeStore.getAuth().token) {
+          window.location.href = '/';
+          return;
+        }
         const t = setTimeout(() => setEntrou(true), 60);
         carregar();
         return () => clearTimeout(t);
@@ -83,7 +80,7 @@
         setErro(null);
         try {
           const pick = PERGUNTAS[Math.floor(Math.random() * PERGUNTAS.length)];
-          const r = await api('POST', '/diary/quiz/create', {
+          const r = await LifeAPI.diary.createQuiz({
             pergunta: pick.p,
             opcoes: pick.o.map((t, i) => ({
               id: String.fromCharCode(97 + i),
@@ -97,7 +94,7 @@
           }
           await carregar();
         } catch (e) {
-          setErro('Erro de conexão');
+          setErro(e.message || 'Erro de conexão');
         } finally {
           setSincronizando(false);
         }
@@ -108,12 +105,19 @@
         setEtapa('prever');
       }
 
+      function handleTap(fn) {
+        return (event) => {
+          event.preventDefault();
+          fn();
+        };
+      }
+
       async function escolherPrevisao(id) {
         if (!quiz || !minhaResposta) return;
         setSincronizando(true);
         setErro(null);
         try {
-          const r = await api('POST', '/diary/quiz/answer', { question_id: quiz.id, resposta: minhaResposta, previsao: id });
+          const r = await LifeAPI.diary.answerQuiz({ question_id: quiz.id, resposta: minhaResposta, previsao: id });
           if (!r.ok) {
             setErro(r.error || 'Erro ao salvar');
             return;
@@ -121,7 +125,7 @@
           setEtapa('respondido');
           await carregar();
         } catch (e) {
-          setErro('Erro de conexão');
+          setErro(e.message || 'Erro de conexão');
         } finally {
           setSincronizando(false);
         }
@@ -156,7 +160,7 @@
             .qz-card { background:#fffdfc; border-radius:20px; border:1.5px solid #f0ddd6; box-shadow:0 2px 12px rgba(180,120,110,0.07); padding:16px; }
             .qz-spotlight { position:relative; overflow:hidden; padding:22px; border-radius:24px; }
             .qz-spotlight::before { content:''; position:absolute; inset:0; background:linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.35) 45%, transparent 60%); background-size:200% 100%; animation:shimmer 3.2s ease-in-out infinite; }
-            .qz-opcao { display:flex; align-items:center; gap:12px; padding:13px 14px; border-radius:16px; margin-top:10px; background:rgba(255,255,255,0.16); border:1.5px solid rgba(255,255,255,0.3); cursor:pointer; color:white; transition:background .15s ease; width:100%; text-align:left; font-family:inherit; font-size:inherit; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+            .qz-opcao { display:flex; align-items:center; gap:12px; padding:13px 14px; border-radius:16px; margin-top:10px; background:rgba(255,255,255,0.16); border:1.5px solid rgba(255,255,255,0.3); cursor:pointer; color:white; transition:background .15s ease; width:100%; text-align:left; font-family:inherit; font-size:inherit; -webkit-tap-highlight-color:transparent; touch-action:manipulation; user-select:none; -webkit-user-select:none; min-height:48px; }
             .qz-opcao:active { background:rgba(255,255,255,0.3); transform:scale(0.98); }
             .qz-opcao:first-of-type { margin-top:16px; }
             .qz-dots span { animation:pulseDots 1.2s ease-in-out infinite; display:inline-block; }
@@ -221,7 +225,7 @@
                     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.85)", fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.4 }}>Sua resposta é privada até os dois responderem</div>
                     <div className="qz-serif" style={{ color: "white", fontSize: 17, fontWeight: 600, marginTop: 8 }}>{quiz.pergunta}</div>
                     {quiz.opcoes.map(o => (
-                      <button key={o.id} className="qz-opcao" onClick={() => escolherResposta(o.id)}>
+                      <button key={o.id} className="qz-opcao" type="button" onClick={handleTap(() => escolherResposta(o.id))} onTouchEnd={handleTap(() => escolherResposta(o.id))}>
                         <span style={{ fontSize: 20 }}>{o.emoji}</span>
                         <span style={{ fontSize: 13.5, fontWeight: 600 }}>{o.texto}</span>
                       </button>
@@ -234,7 +238,7 @@
                     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.85)", fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.4 }}>Agora tente adivinhar</div>
                     <div className="qz-serif" style={{ color: "white", fontSize: 17, fontWeight: 600, marginTop: 8 }}>O que você acha que o outro vai escolher?</div>
                     {quiz.opcoes.map(o => (
-                      <button key={o.id} className="qz-opcao" onClick={() => escolherPrevisao(o.id)} disabled={sincronizando}>
+                      <button key={o.id} className="qz-opcao" type="button" onClick={handleTap(() => escolherPrevisao(o.id))} onTouchEnd={handleTap(() => escolherPrevisao(o.id))} disabled={sincronizando}>
                         <span style={{ fontSize: 20 }}>{o.emoji}</span>
                         <span style={{ fontSize: 13.5, fontWeight: 600 }}>{o.texto}</span>
                       </button>
@@ -306,6 +310,6 @@
     };
 
     ReactDOM.createRoot(document.getElementById("root")).render(<QuizCasalMock />);
-  </script>
+  -->
 </body>
 </html>
