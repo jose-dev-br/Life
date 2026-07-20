@@ -1,12 +1,16 @@
 {
   "name": "Jornada do Casal",
-  "dockerComposeFile": "../docker-compose.yml",
-  "service": "proxy",
-  "workspaceFolder": "/workspace",
-  "forwardPorts": [8080],
-  "postCreateCommand": "docker compose up -d",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "postCreateCommand": "chmod +x start.sh && docker compose up -d --build",
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": {
+      "label": "App",
+      "onAutoForward": "openBrowser"
+    }
   },
   "customizations": {
     "vscode": {
