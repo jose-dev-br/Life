@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>📱 Pokédex — Kanto</title>
+    <script src="/shared/store.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fraunces:opsz,wght@9..144,500..700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: #faf1ee;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 20px 12px 40px;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 420px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .card {
+            background: #fffdfc;
+            border-radius: 20px;
+            border: 1.5px solid #f0ddd6;
+            box-shadow: 0 2px 12px rgba(180, 120, 110, 0.07);
+            padding: 16px;
+        }
+
+        .spotlight {
+            position: relative;
+            overflow: hidden;
+            padding: 20px;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .spotlight::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.35) 45%, transparent 60%);
+            background-size: 200% 100%;
+            animation: shimmer 3.2s ease-in-out infinite;
+        }
+        .spotlight-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.22);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+            padding: 4px;
+        }
+        .spotlight-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+        .spotlight-text {
+            position: relative;
+            z-index: 1;
+        }
+        .spotlight-label {
+            font-size: 10.5px;
+            color: rgba(255, 255, 255, 0.85);
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .spotlight-name {
+            font-family: 'Fraunces', serif;
+            color: white;
+            font-size: 17px;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+        .spotlight-date {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 11.5px;
+            margin-top: 3px;
+        }
+
+        .bar-track {
+            background: #f5e6e1;
+            border-radius: 999px;
+            overflow: hidden;
+            height: 9px;
+        }
+        .bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+            width: 0%;
+        }
+
+        .chip {
+            padding: 7px 13px;
+            border-radius: 999px;
+            font-size: 12.5px;
+            font-weight: 700;
+            border: 1.5px solid #f0ddd6;
+            background: #fffdfc;
+            color: #8a6f6a;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s;
+            user-select: none;
+        }
+        .chip.active {
+            background: #a8544a;
+            border-color: #a8544a;
+            color: white;
+        }
+        .chip:hover {
+            background: #f5e6e1;
+        }
+        .chip.active:hover {
+            background: #92473e;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+        }
+
+        .tile {
+            aspect-ratio: 1;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            padding: 4px;
+            transition: transform 0.15s;
+            border: 2px solid #f0ddd6;
+            background: #faf1ee;
+            min-height: 60px;
+        }
+        .tile:active {
+            transform: scale(0.92);
+        }
+        .tile.capturado {
+            border-color: #7fb88f;
+            background: #f6faf7;
+        }
+        .tile .sprite {
+            width: 70%;
+            height: 70%;
+            object-fit: contain;
+            image-rendering: pixelated;
+            transition: all 0.3s;
+        }
+        .tile .sprite.sombra {
+            filter: brightness(0) contrast(1) drop-shadow(0 0 2px rgba(0,0,0,0.3));
+            opacity: 0.6;
+        }
+        .tile .numero {
+            font-size: 7px;
+            font-family: 'JetBrains Mono', monospace;
+            color: #a8938e;
+            margin-top: 1px;
+        }
+        .tile .nome {
+            font-size: 7px;
+            font-weight: 700;
+            color: #4a3634;
+            text-align: center;
+            line-height: 1.1;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .tile.capturado .nome {
+            color: #2d1f1c;
+        }
+        .tile:not(.capturado) .nome {
+            color: #a8938e;
+        }
+
+        .sheet-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(74, 54, 52, 0.5);
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            z-index: 50;
+            backdrop-filter: blur(4px);
+        }
+        .sheet {
+            background: #fffdfc;
+            width: 100%;
+            max-width: 420px;
+            border-radius: 24px 24px 0 0;
+            padding: 24px;
+            animation: sheetUp 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+            text-align: center;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .sheet-handle {
+            width: 36px;
+            height: 4px;
+            background: #f0ddd6;
+            border-radius: 999px;
+            margin: 0 auto 16px;
+        }
+        .sheet-sprite {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 8px;
+            image-rendering: pixelated;
+        }
+        .sheet-sprite img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+        .sheet-sprite img.sombra {
+            filter: brightness(0) contrast(1) drop-shadow(0 0 4px rgba(0,0,0,0.4));
+            opacity: 0.5;
+        }
+        .sheet-name {
+            font-family: 'Fraunces', serif;
+            font-size: 22px;
+            font-weight: 700;
+            color: #4a3634;
+        }
+        .sheet-sub {
+            font-size: 13px;
+            color: #a8938e;
+        }
+        .sheet-info {
+            margin-top: 12px;
+            padding: 12px;
+            background: #faf1ee;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #6b5450;
+        }
+        .sheet-info small {
+            font-size: 11px;
+            color: #a8938e;
+        }
+
+        .btn-primary {
+            border: none;
+            background: #a8544a;
+            color: white;
+            font-weight: 800;
+            border-radius: 14px;
+            padding: 10px 18px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.15s;
+            width: 100%;
+            margin-top: 12px;
+        }
+        .btn-primary:hover {
+            background: #92473e;
+        }
+        .btn-outline {
+            border: 1.5px solid #f0ddd6;
+            background: transparent;
+            color: #8a6f6a;
+            font-weight: 700;
+            border-radius: 14px;
+            padding: 10px 18px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .btn-outline:hover {
+            background: #f5e6e1;
+        }
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-group .btn-primary,
+        .btn-group .btn-outline {
+            flex: 1;
+        }
+
+        .status {
+            padding: 8px 14px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 12px;
+            text-align: center;
+        }
+        .status.ok {
+            background: #eaf5ed;
+            color: #7fb88f;
+        }
+        .status.error {
+            background: #fde8e8;
+            color: #e0716a;
+        }
+        .status.loading {
+            background: #f5e6e1;
+            color: #a8938e;
+        }
+
+        .legenda {
+            font-size: 10px;
+            color: #a8938e;
+            text-align: center;
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .legenda .exemplo {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .legenda .exemplo .mini-sprite {
+            width: 20px;
+            height: 20px;
+            image-rendering: pixelated;
+            object-fit: contain;
+        }
+        .legenda .exemplo .mini-sprite.sombra {
+            filter: brightness(0) contrast(1);
+            opacity: 0.5;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-family: 'Fraunces', serif;
+            font-size: 22px;
+            font-weight: 600;
+            color: #4a3634;
+        }
+        .header .sub {
+            font-size: 11.5px;
+            color: #a8938e;
+        }
+        .header .emoji {
+            font-size: 28px;
+        }
+
+        .back {
+            font-size: 13px;
+            color: #a8938e;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            text-decoration: none;
+        }
+
+        .filtros {
+            display: flex;
+            gap: 7px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+        .filtros::-webkit-scrollbar {
+            display: none;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
+        }
+        @keyframes sheetUp {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+        @keyframes popIn {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            60% {
+                transform: scale(1.1);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @media (max-width: 420px) {
+            .grid {
+                gap: 4px;
+            }
+            .tile {
+                min-height: 50px;
+                border-radius: 8px;
+            }
+            .tile .sprite {
+                width: 60%;
+                height: 60%;
+            }
+            .tile .nome {
+                font-size: 6px;
+            }
+            .tile .numero {
+                font-size: 6px;
+            }
+            .spotlight-icon {
+                width: 50px;
+                height: 50px;
+            }
+            .sheet-sprite {
+                width: 90px;
+                height: 90px;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+        .mt-2 {
+            margin-top: 8px;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .flex {
+            display: flex;
+        }
+        .flex-wrap {
+            flex-wrap: wrap;
+        }
+        .items-center {
+            align-items: center;
+        }
+        .justify-between {
+            justify-content: space-between;
+        }
+        .gap-1 {
+            gap: 4px;
+        }
+        .w-full {
+            width: 100%;
+        }
+        .image-rendering-pixelated {
+            image-rendering: pixelated;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        if (!sessionStorage.getItem('jwt')) {
+            window.location.href = '/';
+        }
+    </script>
+
+    <div class="app" id="app">
+
+        <a href="/jogos/" class="back">← Voltar</a>
+
+        <!-- ===== HEADER ===== -->
+        <div class="header">
+            <div>
+                <h1>📱 Pokédex</h1>
+                <div class="sub">🎮 Kanto · 151 Pokémon</div>
+            </div>
+            <span class="emoji">⚡</span>
+        </div>
+
+        <!-- ===== BOTÕES ===== -->
+        <div class="btn-group">
+            <button class="btn-primary" id="btnImportar">📂 Importar Save</button>
+            <button class="btn-outline" id="btnReset">🔄 Reset</button>
+        </div>
+        <input type="file" id="fileInput" accept=".srm,.sav" style="display:none" />
+
+        <!-- ===== STATUS ===== -->
+        <div id="status" class="hidden"></div>
+
+        <!-- ===== SPOTLIGHT ===== -->
+        <div id="spotlight" class="hidden">
+            <div class="spotlight" id="spotlightBg">
+                <div class="spotlight-icon" id="spotlightIcon">
+                    <img src="" alt="" id="spotlightImg" />
+                </div>
+                <div class="spotlight-text">
+                    <div class="spotlight-label">Última captura</div>
+                    <div class="spotlight-name" id="spotlightNome">Bulbasaur</div>
+                    <div class="spotlight-date" id="spotlightData">12/07/2026</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== SEM CAPTURAS ===== -->
+        <div class="card text-center" id="semCapturas">
+            <div style="font-size:40px;">🔍</div>
+            <div style="font-size:13px;color:#6b5450;margin-top:8px;">Nenhum Pokémon capturado ainda</div>
+            <div style="font-size:11px;color:#a8938e;">Importe seu save do RetroArch para começar!</div>
+        </div>
+
+        <!-- ===== PROGRESSO ===== -->
+        <div class="card">
+            <div class="flex justify-between" style="font-size:13px;margin-bottom:6px;">
+                <span style="font-weight:700;color:#4a3634;">📊 Progresso</span>
+                <span id="progressoTexto" style="font-family:'JetBrains Mono',monospace;color:#8a6f6a;">0/151 · 0%</span>
+            </div>
+            <div class="bar-track">
+                <div class="bar-fill" id="progressoBar" style="width:0%;background:#a8544a;"></div>
+            </div>
+        </div>
+
+        <!-- ===== FILTROS ===== -->
+        <div class="filtros" id="filtros">
+            <span class="chip active" data-filtro="todos">📋 Todos (151)</span>
+            <span class="chip" data-filtro="capturados">✅ Capturados (0)</span>
+            <span class="chip" data-filtro="faltam">⬜ Faltam (151)</span>
+        </div>
+
+        <!-- ===== GRID ===== -->
+        <div class="card" style="padding:10px;">
+            <div class="grid" id="grid"></div>
+        </div>
+
+        <!-- ===== LEGENDA ===== -->
+        <div class="legenda" id="legenda">
+            <span class="exemplo">🟢 Capturado</span>
+            <span class="exemplo">⚫ Sombra</span>
+            <span>💡 Duplo clique para capturar/liberar</span>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- SHEET -->
+    <!-- ============================================================== -->
+    <div class="sheet-backdrop hidden" id="sheetBackdrop">
+        <div class="sheet" id="sheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-sprite" id="sheetSprite">
+                <img src="" alt="" id="sheetImg" />
+            </div>
+            <div class="sheet-name" id="sheetNome">Nome</div>
+            <div class="sheet-sub" id="sheetSub">#000 · Tipo</div>
+            <div class="sheet-info" id="sheetInfo">Informações</div>
+            <button class="btn-primary" id="sheetBtn">🎯 Capturar (teste)</button>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================================== -->
+    <script>
+        // ================================================================
+        // DADOS DA POKÉDEX
+        // ================================================================
+
+        const DEX = [];
+        for (let i = 1; i <= 151; i++) {
+            const nomes = [
+                "Bulbasaur", "Ivysaur", "Venusaur", "Charmander", "Charmeleon", "Charizard",
+                "Squirtle", "Wartortle", "Blastoise", "Caterpie", "Metapod", "Butterfree",
+                "Weedle", "Kakuna", "Beedrill", "Pidgey", "Pidgeotto", "Pidgeot",
+                "Rattata", "Raticate", "Spearow", "Fearow", "Ekans", "Arbok",
+                "Pikachu", "Raichu", "Sandshrew", "Sandslash", "Nidoran♀", "Nidorina",
+                "Nidoqueen", "Nidoran♂", "Nidorino", "Nidoking", "Clefairy", "Clefable",
+                "Vulpix", "Ninetales", "Jigglypuff", "Wigglytuff", "Zubat", "Golbat",
+                "Oddish", "Gloom", "Vileplume", "Paras", "Parasect", "Venonat",
+                "Venomoth", "Diglett", "Dugtrio", "Meowth", "Persian", "Psyduck",
+                "Golduck", "Mankey", "Primeape", "Growlithe", "Arcanine", "Poliwag",
+                "Poliwhirl", "Poliwrath", "Abra", "Kadabra", "Alakazam", "Machop",
+                "Machoke", "Machamp", "Bellsprout", "Weepinbell", "Victreebel", "Tentacool",
+                "Tentacruel", "Geodude", "Graveler", "Golem", "Ponyta", "Rapidash",
+                "Slowpoke", "Slowbro", "Magnemite", "Magneton", "Farfetch'd", "Doduo",
+                "Dodrio", "Seel", "Dewgong", "Grimer", "Muk", "Shellder",
+                "Cloyster", "Gastly", "Haunter", "Gengar", "Onix", "Drowzee",
+                "Hypno", "Krabby", "Kingler", "Voltorb", "Electrode", "Exeggcute",
+                "Exeggutor", "Cubone", "Marowak", "Hitmonlee", "Hitmonchan", "Lickitung",
+                "Koffing", "Weezing", "Rhyhorn", "Rhydon", "Chansey", "Tangela",
+                "Kangaskhan", "Horsea", "Seadra", "Goldeen", "Seaking", "Staryu",
+                "Starmie", "Mr. Mime", "Scyther", "Jynx", "Electabuzz", "Magmar",
+                "Pinsir", "Tauros", "Magikarp", "Gyarados", "Lapras", "Ditto",
+                "Eevee", "Vaporeon", "Jolteon", "Flareon", "Porygon", "Omanyte",
+                "Omastar", "Kabuto", "Kabutops", "Aerodactyl", "Snorlax", "Articuno",
+                "Zapdos", "Moltres", "Dratini", "Dragonair", "Dragonite", "Mewtwo", "Mew"
+            ];
+            const tipos = [
+                "Planta", "Planta", "Planta", "Fogo", "Fogo", "Fogo",
+                "Água", "Água", "Água", "Inseto", "Inseto", "Inseto",
+                "Inseto", "Inseto", "Inseto", "Normal", "Normal", "Normal",
+                "Normal", "Normal", "Normal", "Normal", "Veneno", "Veneno",
+                "Elétrico", "Elétrico", "Terra", "Terra", "Veneno", "Veneno",
+                "Veneno", "Veneno", "Veneno", "Veneno", "Fada", "Fada",
+                "Fogo", "Fogo", "Normal", "Normal", "Veneno", "Veneno",
+                "Planta", "Planta", "Planta", "Inseto", "Inseto", "Inseto",
+                "Inseto", "Terra", "Terra", "Normal", "Normal", "Água",
+                "Água", "Lutador", "Lutador", "Fogo", "Fogo", "Água",
+                "Água", "Água", "Psíquico", "Psíquico", "Psíquico", "Lutador",
+                "Lutador", "Lutador", "Planta", "Planta", "Planta", "Água",
+                "Água", "Pedra", "Pedra", "Pedra", "Fogo", "Fogo",
+                "Água", "Água", "Elétrico", "Elétrico", "Normal", "Normal",
+                "Normal", "Água", "Água", "Veneno", "Veneno", "Água",
+                "Água", "Fantasma", "Fantasma", "Fantasma", "Pedra", "Psíquico",
+                "Psíquico", "Água", "Água", "Elétrico", "Elétrico", "Planta",
+                "Planta", "Terra", "Terra", "Lutador", "Lutador", "Normal",
+                "Veneno", "Veneno", "Terra", "Terra", "Normal", "Planta",
+                "Normal", "Água", "Água", "Água", "Água", "Água",
+                "Água", "Psíquico", "Inseto", "Gelo", "Elétrico", "Fogo",
+                "Inseto", "Normal", "Água", "Água", "Água", "Normal",
+                "Normal", "Água", "Elétrico", "Fogo", "Normal", "Pedra",
+                "Pedra", "Pedra", "Pedra", "Pedra", "Normal", "Gelo",
+                "Elétrico", "Fogo", "Dragão", "Dragão", "Dragão", "Psíquico", "Psíquico"
+            ];
+            const cores = [
+                "#7fb88f", "#7fb88f", "#7fb88f", "#e0716a", "#e0716a", "#e0716a",
+                "#5b8fd9", "#5b8fd9", "#5b8fd9", "#a87fd9", "#a87fd9", "#a87fd9",
+                "#a87fd9", "#a87fd9", "#a87fd9", "#a8938e", "#a8938e", "#a8938e",
+                "#a8938e", "#a8938e", "#a8938e", "#a8938e", "#a87fd9", "#a87fd9",
+                "#d9a441", "#d9a441", "#d9a441", "#d9a441", "#a87fd9", "#a87fd9",
+                "#a87fd9", "#a87fd9", "#a87fd9", "#a87fd9", "#fbc2eb", "#fbc2eb",
+                "#e0716a", "#e0716a", "#a8938e", "#a8938e", "#a87fd9", "#a87fd9",
+                "#7fb88f", "#7fb88f", "#7fb88f", "#a87fd9", "#a87fd9", "#a87fd9",
+                "#a87fd9", "#d9a441", "#d9a441", "#a8938e", "#a8938e", "#5b8fd9",
+                "#5b8fd9", "#a8544a", "#a8544a", "#e0716a", "#e0716a", "#5b8fd9",
+                "#5b8fd9", "#5b8fd9", "#a87fd9", "#a87fd9", "#a87fd9", "#a8544a",
+                "#a8544a", "#a8938e", "#a8938e", "#a8938e", "#e0716a", "#e0716a",
+                "#5b8fd9", "#5b8fd9", "#d9a441", "#d9a441", "#a8938e", "#a8938e",
+                "#a8938e", "#5b8fd9", "#5b8fd9", "#a87fd9", "#a87fd9", "#5b8fd9",
+                "#5b8fd9", "#a87fd9", "#a87fd9", "#a87fd9", "#a8938e", "#a87fd9",
+                "#a87fd9", "#5b8fd9", "#5b8fd9", "#d9a441", "#d9a441", "#7fb88f",
+                "#7fb88f", "#d9a441", "#d9a441", "#a8544a", "#a8544a", "#a8938e",
+                "#a87fd9", "#a87fd9", "#d9a441", "#d9a441", "#a8938e", "#7fb88f",
+                "#a8938e", "#5b8fd9", "#5b8fd9", "#5b8fd9", "#5b8fd9", "#5b8fd9",
+                "#5b8fd9", "#a87fd9", "#a87fd9", "#5b8fd9", "#d9a441", "#e0716a",
+                "#a87fd9", "#a8938e", "#5b8fd9", "#5b8fd9", "#5b8fd9", "#a8938e",
+                "#a8938e", "#5b8fd9", "#d9a441", "#e0716a", "#a8938e", "#a8938e",
+                "#a8938e", "#a8938e", "#a8938e", "#a8938e", "#5b8fd9", "#d9a441",
+                "#e0716a", "#a87fd9", "#a87fd9", "#a87fd9", "#a87fd9", "#a87fd9"
+            ];
+            DEX.push({
+                n: i,
+                nome: nomes[i - 1] || `Pokémon ${i}`,
+                tipo: tipos[i - 1] || "Desconhecido",
+                cor: cores[i - 1] || "#a8938e",
+                sprite: null,
+            });
+        }
+
+        // ================================================================
+        // SPRITES OFFLINE (base64)
+        // ================================================================
+        let base64Sprites = {};
+
+        async function carregarSprites() {
+            try {
+                const resp = await fetch('/jogos/sprites_base64.json');
+                if (resp.ok) {
+                    base64Sprites = await resp.json();
+                }
+            } catch (e) {
+                console.warn('Sprites base64 não encontrados, usando fallback online');
+            }
+            DEX.forEach(p => {
+                p.sprite = base64Sprites[p.n] || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.n}.png`;
+            });
+        }
+
+        // ================================================================
+        // ESTADO
+        // ================================================================
+        let pokemonData = [];
+        let filtroAtual = 'todos';
+        let sheetPokemon = null;
+
+        // ================================================================
+        // FUNÇÕES
+        // ================================================================
+
+        function carregarDados() {
+            try {
+                const saved = localStorage.getItem('pokedex_data_v2');
+                if (saved) {
+                    pokemonData = JSON.parse(saved);
+                    return;
+                }
+            } catch (e) {}
+            pokemonData = DEX.map((p) => ({ ...p, capturado: false, data: null }));
+        }
+
+        function salvarDados() {
+            try {
+                localStorage.setItem('pokedex_data_v2', JSON.stringify(pokemonData));
+            } catch (e) {}
+        }
+
+        function getCapturados() {
+            return pokemonData.filter((p) => p.capturado);
+        }
+
+        function getUltimoCapturado() {
+            const capturados = getCapturados();
+            if (capturados.length === 0) return null;
+            return capturados.sort((a, b) => {
+                const da = a.data ? new Date(a.data) : new Date(0);
+                const db = b.data ? new Date(b.data) : new Date(0);
+                return db - da;
+            })[0];
+        }
+
+        function getListaFiltrada() {
+            if (filtroAtual === 'capturados') return pokemonData.filter((p) => p.capturado);
+            if (filtroAtual === 'faltam') return pokemonData.filter((p) => !p.capturado);
+            return pokemonData;
+        }
+
+        // ================================================================
+        // RENDER
+        // ================================================================
+
+        function renderizar() {
+            const capturados = getCapturados();
+            const total = pokemonData.length;
+            const pct = Math.round((capturados.length / total) * 100);
+            const ultimo = getUltimoCapturado();
+
+            document.getElementById('progressoTexto').textContent = `${capturados.length}/${total} · ${pct}%`;
+            document.getElementById('progressoBar').style.width = `${pct}%`;
+
+            document.querySelectorAll('.chip[data-filtro]').forEach((chip) => {
+                const filtro = chip.dataset.filtro;
+                let label = chip.textContent.split('(')[0].trim();
+                let count = 0;
+                if (filtro === 'todos') count = total;
+                else if (filtro === 'capturados') count = capturados.length;
+                else if (filtro === 'faltam') count = total - capturados.length;
+                chip.textContent = `${label} (${count})`;
+            });
+
+            const spotlight = document.getElementById('spotlight');
+            const semCapturas = document.getElementById('semCapturas');
+            if (ultimo) {
+                spotlight.classList.remove('hidden');
+                semCapturas.classList.add('hidden');
+                const bg = document.getElementById('spotlightBg');
+                bg.style.background = `linear-gradient(135deg, ${ultimo.cor}, ${ultimo.cor}cc)`;
+                document.getElementById('spotlightImg').src = ultimo.sprite;
+                document.getElementById('spotlightImg').alt = ultimo.nome;
+                document.getElementById('spotlightNome').textContent = ultimo.nome;
+                document.getElementById('spotlightData').textContent = ultimo.data || 'Data desconhecida';
+            } else {
+                spotlight.classList.add('hidden');
+                semCapturas.classList.remove('hidden');
+            }
+
+            const grid = document.getElementById('grid');
+            const lista = getListaFiltrada();
+            grid.innerHTML = lista.map((p) => {
+                const classe = p.capturado ? 'tile capturado' : 'tile';
+                const spriteClasse = p.capturado ? 'sprite' : 'sprite sombra';
+                return `
+                    <div class="${classe}" data-n="${p.n}">
+                        <img class="${spriteClasse}" src="${p.sprite}" alt="${p.nome}" loading="lazy" />
+                        <div class="numero">#${p.n}</div>
+                        <div class="nome">${p.capturado ? p.nome : '???'}</div>
+                    </div>
+                `;
+            }).join('');
+
+            document.querySelectorAll('.tile').forEach((el) => {
+                el.addEventListener('click', () => {
+                    const n = parseInt(el.dataset.n);
+                    const p = pokemonData.find((p) => p.n === n);
+                    if (p) abrirSheet(p);
+                });
+                el.addEventListener('dblclick', () => {
+                    const n = parseInt(el.dataset.n);
+                    toggleCaptura(n);
+                });
+            });
+        }
+
+        // ================================================================
+        // SHEET
+        // ================================================================
+
+        function abrirSheet(p) {
+            sheetPokemon = p;
+            const backdrop = document.getElementById('sheetBackdrop');
+            backdrop.classList.remove('hidden');
+
+            const img = document.getElementById('sheetImg');
+            img.src = p.sprite;
+            img.alt = p.nome;
+            img.className = p.capturado ? '' : 'sombra';
+
+            document.getElementById('sheetNome').textContent = p.capturado ? p.nome : '??? — Não capturado';
+            document.getElementById('sheetSub').textContent = `#${String(p.n).padStart(3, '0')} · ${p.tipo}`;
+
+            const info = document.getElementById('sheetInfo');
+            if (p.capturado) {
+                info.innerHTML = `Capturado em <strong>${p.data || 'Data desconhecida'}</strong>`;
+            } else {
+                info.innerHTML = `
+                    🕵️‍♂️ Ainda não foi capturado.<br>
+                    <small>Importe o save do RetroArch para atualizar!</small>
+                `;
+            }
+
+            document.getElementById('sheetBtn').textContent = p.capturado ? '🔓 Libertar (teste)' : '🎯 Capturar (teste)';
+            document.getElementById('sheetBtn').onclick = () => {
+                toggleCaptura(p.n);
+                fecharSheet();
+            };
+        }
+
+        function fecharSheet() {
+            document.getElementById('sheetBackdrop').classList.add('hidden');
+            sheetPokemon = null;
+        }
+
+        document.getElementById('sheetBackdrop').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) fecharSheet();
+        });
+
+        // ================================================================
+        // CAPTURA
+        // ================================================================
+
+        function toggleCaptura(n) {
+            const idx = pokemonData.findIndex((p) => p.n === n);
+            if (idx === -1) return;
+            const p = pokemonData[idx];
+            const capturado = !p.capturado;
+            pokemonData[idx] = {
+                ...p,
+                capturado,
+                data: capturado ? new Date().toISOString().slice(0, 10) : null,
+            };
+            salvarDados();
+            renderizar();
+        }
+
+        // ================================================================
+        // IMPORTAÇÃO DE SAVE
+        // ================================================================
+
+        function importarSave(file) {
+            const status = document.getElementById('status');
+            status.className = 'status loading';
+            status.textContent = '⏳ Lendo save do RetroArch...';
+            status.classList.remove('hidden');
+
+            const token = sessionStorage.getItem('jwt');
+            if (!token) {
+                status.className = 'status error';
+                status.textContent = '❌ Não autenticado. Faça login novamente.';
+                setTimeout(() => status.classList.add('hidden'), 3000);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('save', file);
+
+            fetch('/api/pokedex/import-save', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                },
+                body: formData
+            })
+            .then(resp => resp.json())
+            .then(data => {
+                if (!data.ok) {
+                    throw new Error(data.error || 'Erro desconhecido');
+                }
+
+                const capturadosSet = new Set(data.capturados);
+                const vistosSet = new Set(data.vistos);
+
+                const novosDados = DEX.map((p) => {
+                    const capturado = capturadosSet.has(p.n);
+                    const visto = vistosSet.has(p.n);
+                    return {
+                        ...p,
+                        capturado,
+                        data: capturado ? new Date().toISOString().slice(0, 10) : null,
+                    };
+                });
+
+                pokemonData = novosDados;
+                salvarDados();
+
+                status.className = 'status ok';
+                status.textContent = `✅ ${data.total_capturados} capturados · ${data.total_vistos} vistos`;
+                setTimeout(() => status.classList.add('hidden'), 4000);
+
+                renderizar();
+            })
+            .catch(error => {
+                status.className = 'status error';
+                status.textContent = '❌ Erro: ' + error.message;
+                setTimeout(() => status.classList.add('hidden'), 4000);
+            });
+        }
+
+        // ================================================================
+        // RESET
+        // ================================================================
+
+        function resetarDados() {
+            if (!confirm('Resetar todos os dados da Pokédex?')) return;
+            pokemonData = DEX.map((p) => ({ ...p, capturado: false, data: null }));
+            salvarDados();
+            renderizar();
+            const status = document.getElementById('status');
+            status.className = 'status ok';
+            status.textContent = '🔄 Dados resetados!';
+            status.classList.remove('hidden');
+            setTimeout(() => status.classList.add('hidden'), 2000);
+        }
+
+        // ================================================================
+        // INIT
+        // ================================================================
+
+        async function init() {
+            await carregarSprites();
+            carregarDados();
+            renderizar();
+
+            document.querySelectorAll('.chip[data-filtro]').forEach((chip) => {
+                chip.addEventListener('click', function() {
+                    document.querySelectorAll('.chip[data-filtro]').forEach((c) => c.classList.remove('active'));
+                    this.classList.add('active');
+                    filtroAtual = this.dataset.filtro;
+                    renderizar();
+                });
+            });
+
+            document.getElementById('btnImportar').addEventListener('click', () => {
+                document.getElementById('fileInput').click();
+            });
+
+            document.getElementById('fileInput').addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    importarSave(e.target.files[0]);
+                    e.target.value = '';
+                }
+            });
+
+            document.getElementById('btnReset').addEventListener('click', resetarDados);
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') fecharSheet();
+        });
+
+        console.log('📱 Pokédex com sprites carregada!');
+    </script>
+
+</body>
+</html>

@@ -27,6 +27,7 @@ from urllib.parse import urlparse, parse_qs
 
 import db
 import auth
+import parse_srm
 
 PORT = 8000
 MAX_BODY_BYTES = 2 * 1024 * 1024
@@ -140,6 +141,8 @@ class SyncHandler(http.server.BaseHTTPRequestHandler):
                 return self._uber_save_session()
             if route == '/api/uber/overrides':
                 return self._uber_save_override()
+            if route == '/api/pokedex/import-save':
+                return self._pokedex_import_save()
             self._json(404, {'ok': False, 'error': 'rota não encontrada'})
         except ValueError as e:
             self._json(400, {'ok': False, 'error': str(e)})
@@ -674,6 +677,67 @@ class SyncHandler(http.server.BaseHTTPRequestHandler):
         conn.commit()
         conn.close()
         self._json(200, {'ok': True})
+
+
+    # ==================== POKEDEX ====================
+
+    def _pokedex_import_save(self):
+        claims = self._auth_claims()
+        if not claims:
+            return self._json(401, {'ok': False, 'error': 'não autenticado'})
+
+        content_type = self.headers.get('Content-Type', '')
+        if 'multipart/form-data' not in content_type:
+            return self._json(400, {'ok': False, 'error': 'envie o arquivo como multipart/form-data'})
+
+        boundary = None
+        for part in content_type.split(';'):
+            part = part.strip()
+            if part.startswith('boundary='):
+                boundary = part.split('=', 1)[1].strip('"').encode()
+                break
+
+        if not boundary:
+            return self._json(400, {'ok': False, 'error': 'boundary não encontrado'})
+
+        content_length = int(self.headers.get('Content-Length', 0))
+        if content_length > MAX_BODY_BYTES:
+            return self._json(400, {'ok': False, 'error': 'arquivo grande demais'})
+
+        raw_body = self.rfile.read(content_length)
+
+        # Extract file from multipart
+        file_data = None
+        parts = raw_body.split(b'--' + boundary)
+        for part in parts:
+            if b'filename=' in part:
+                header_end = part.find(b'\r\n\r\n')
+                if header_end == -1:
+                    continue
+                body = part[header_end + 4:]
+                if body.endswith(b'\r\n'):
+                    body = body[:-2]
+                file_data = body
+                break
+
+        if not file_data:
+            return self._json(400, {'ok': False, 'error': 'arquivo não encontrado no upload'})
+
+        try:
+            result = parse_srm.parse_srm(file_data)
+        except ValueError as e:
+            return self._json(400, {'ok': False, 'error': f'erro ao ler save: {str(e)}'})
+        except Exception as e:
+            return self._json(500, {'ok': False, 'error': f'erro inesperado: {str(e)}'})
+
+        self._json(200, {
+            'ok': True,
+            'capturados': result['capturados'],
+            'vistos': result['vistos'],
+            'total_capturados': result['total_capturados'],
+            'total_vistos': result['total_vistos'],
+            'national_dex_unlocked': result['national_dex_unlocked'],
+        })
 
 
 def _now_iso():

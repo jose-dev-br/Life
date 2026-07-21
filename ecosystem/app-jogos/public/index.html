@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Jornada do Casal — Jogos</title>
+  <title>Jornada do Casal — Pokemon</title>
   <script src="/shared/store.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fraunces:opsz,wght@9..144,500..700&display=swap" rel="stylesheet">
   <style>
@@ -12,12 +12,18 @@
     .container { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 16px; }
     .back { font-size: 13px; color: #a8938e; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; text-decoration: none; }
     .card { background: #fffdfc; border-radius: 20px; border: 1.5px solid #f0ddd6; box-shadow: 0 2px 12px rgba(180,120,110,0.07); padding: 24px; text-align: center; }
-    .title { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 600; }
+    .title { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 600; display: flex; align-items: center; gap: 8px; justify-content: center; }
     .games { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
-    .game-card { background: #faf1ee; border: 1.5px solid #f0ddd6; border-radius: 16px; padding: 18px 12px; text-align: center; }
+    .game-card { background: #faf1ee; border: 1.5px solid #f0ddd6; border-radius: 16px; padding: 18px 12px; text-align: center; cursor: pointer; text-decoration: none; color: inherit; transition: transform 0.15s, box-shadow 0.15s; display: block; }
+    .game-card:active { transform: scale(0.97); }
+    .game-card:hover { box-shadow: 0 2px 8px rgba(180,120,110,0.15); }
     .game-icon { font-size: 32px; margin-bottom: 6px; }
     .game-name { font-size: 13px; font-weight: 700; }
     .game-desc { font-size: 11px; color: #a8938e; margin-top: 2px; }
+    .game-card.pokedex-card { border-color: #e74c3c; background: linear-gradient(135deg, #fff5f5, #fffdfc); }
+    .game-card.pokedex-card .game-icon { font-size: 36px; }
+    .locked { opacity: 0.45; pointer-events: none; }
+    .coming-soon { font-size: 9px; color: #a87fd9; font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
   </style>
 </head>
 <body>
@@ -28,39 +34,34 @@
   </script>
   <div class="container">
     <a href="/hub.html" class="back">← voltar ao hub</a>
-    <div class="title">🎮 Jogos</div>
+    <div class="title">⚡ Pokemon</div>
 
     <div class="card">
-      <div style="font-size:12px;color:#a8938e;margin-bottom:12px;">Escolha um jogo pra jogar juntos</div>
+      <div style="font-size:12px;color:#a8938e;margin-bottom:12px;">Escolha um jogo Pokemon</div>
       <div class="games">
-        <div class="game-card">
-          <div class="game-icon">🐍</div>
-          <div class="game-name">Snake</div>
-          <div class="game-desc">classico</div>
-        </div>
-        <div class="game-card">
-          <div class="game-icon">🎲</div>
-          <div class="game-name">Ludo</div>
-          <div class="game-desc">tabuleiro</div>
-        </div>
-        <div class="game-card">
-          <div class="game-icon">🫧</div>
-          <div class="game-name">Bubble</div>
-          <div class="game-desc">pop pop</div>
-        </div>
-        <div class="game-card">
-          <div class="game-icon">📖</div>
+        <a href="/jogos/pokedex.html" class="game-card pokedex-card">
+          <div class="game-icon">🔴</div>
           <div class="game-name">Pokedex</div>
-          <div class="game-desc">colecao</div>
+          <div class="game-desc">Fire Red</div>
+        </a>
+        <div class="game-card locked">
+          <div class="game-icon">⚔️</div>
+          <div class="game-name">Batalha</div>
+          <div class="game-desc">dupla</div>
+          <div class="coming-soon">em breve</div>
         </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div style="font-size:13px;font-weight:800;">🎖️ Conquistas</div>
-      <div style="font-size:12px;color:#a8938e;margin-top:4px;">5 de 15 desbloqueadas</div>
-      <div style="background:#f5e6e1;border-radius:999px;overflow:hidden;height:6px;margin-top:8px;">
-        <div style="width:33%;height:100%;background:#a87fd9;border-radius:999px;"></div>
+        <div class="game-card locked">
+          <div class="game-icon">🥚</div>
+          <div class="game-name">Ovos</div>
+          <div class="game-desc">chocar</div>
+          <div class="coming-soon">em breve</div>
+        </div>
+        <div class="game-card locked">
+          <div class="game-icon">🎯</div>
+          <div class="game-name">Quiz</div>
+          <div class="game-desc">pokemon</div>
+          <div class="coming-soon">em breve</div>
+        </div>
       </div>
     </div>
   </div>

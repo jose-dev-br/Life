@@ -37,6 +37,22 @@ services:
       - "80"
     restart: unless-stopped
 
+  syncthing:
+    image: lscr.io/linuxserver/syncthing:latest
+    container_name: syncthing
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Sao_Paulo
+    volumes:
+      - ./syncthing/config:/config
+      - ./syncthing/retroarch_saves:/saves
+    expose:
+      - "8384"
+      - "22000/tcp"
+      - "22000/udp"
+    restart: unless-stopped
+
   proxy:
     image: caddy:2-alpine
     ports:
@@ -50,6 +66,7 @@ services:
       - app-uber
       - app-jogos
       - app-saude
+      - syncthing
     restart: unless-stopped
 
 volumes:
