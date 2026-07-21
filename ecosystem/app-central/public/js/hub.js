@@ -2,8 +2,9 @@ const { useEffect, useState } = React;
 
 const APPS = [
   { id: 'diario', nome: 'Diário', icone: '📝', cor: '#a8544a', desc: 'Cartas, quiz e humor', link: '/diario/', total: 20 },
+  { id: 'uber', nome: 'Uber', icone: '🚗', cor: '#7fb88f', desc: 'Rotina, escala e sessões', link: '/uber/', total: 30 },
   { id: 'jogos', nome: 'Jogos', icone: '🎮', cor: '#a87fd9', desc: 'Jogos em dupla', link: '/jogos/', total: 15 },
-  { id: 'saude', nome: 'Saúde', icone: '🏋️', cor: '#7fb88f', desc: 'Peso, ciclo e treino', link: '/saude/', total: 25 },
+  { id: 'saude', nome: 'Saúde', icone: '🏋️', cor: '#e0a24a', desc: 'Peso, ciclo e treino', link: '/saude/', total: 25 },
 ];
 
 function HubPage() {

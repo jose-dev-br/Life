@@ -19,6 +19,10 @@
 		reverse_proxy app-diario:80
 	}
 
+	handle_path /uber/* {
+		reverse_proxy app-uber:80
+	}
+
 	handle_path /jogos/* {
 		reverse_proxy app-jogos:80
 	}

@@ -91,6 +91,35 @@ CREATE TABLE IF NOT EXISTS moods (
     UNIQUE(couple_code, username, created_at)
 );
 CREATE INDEX IF NOT EXISTS idx_moods_couple ON moods(couple_code, id);
+
+-- Uber: configurações
+CREATE TABLE IF NOT EXISTS uber_settings (
+    couple_code TEXT PRIMARY KEY REFERENCES couples(code) ON DELETE CASCADE,
+    data TEXT NOT NULL DEFAULT '{}',
+    updated_at TEXT NOT NULL
+);
+
+-- Uber: sessões
+CREATE TABLE IF NOT EXISTS uber_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    couple_code TEXT NOT NULL REFERENCES couples(code) ON DELETE CASCADE,
+    session_id TEXT NOT NULL,
+    data TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    UNIQUE(couple_code, session_id)
+);
+CREATE INDEX IF NOT EXISTS idx_uber_sessions_couple ON uber_sessions(couple_code, id);
+
+-- Uber: exceções de escala
+CREATE TABLE IF NOT EXISTS uber_overrides (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    couple_code TEXT NOT NULL REFERENCES couples(code) ON DELETE CASCADE,
+    date TEXT NOT NULL,
+    override_type TEXT NOT NULL,
+    reason TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    UNIQUE(couple_code, date)
+);
 """
 
 

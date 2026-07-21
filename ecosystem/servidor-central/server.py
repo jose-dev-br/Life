@@ -134,6 +134,12 @@ class SyncHandler(http.server.BaseHTTPRequestHandler):
                 return self._letter_send()
             if route == '/api/diary/mood':
                 return self._mood_log()
+            if route == '/api/uber/settings':
+                return self._uber_save_settings()
+            if route == '/api/uber/sessions':
+                return self._uber_save_session()
+            if route == '/api/uber/overrides':
+                return self._uber_save_override()
             self._json(404, {'ok': False, 'error': 'rota não encontrada'})
         except ValueError as e:
             self._json(400, {'ok': False, 'error': str(e)})
@@ -258,6 +264,12 @@ class SyncHandler(http.server.BaseHTTPRequestHandler):
             return self._diary_stats()
         if route == '/api/couple/lookup':
             return self._couple_lookup()
+        if route == '/api/uber/settings':
+            return self._uber_get_settings()
+        if route == '/api/uber/sessions':
+            return self._uber_get_sessions()
+        if route == '/api/uber/overrides':
+            return self._uber_get_overrides()
         self._json(404, {'ok': False, 'error': 'rota não encontrada'})
 
     def _couple_lookup(self):
@@ -556,6 +568,112 @@ class SyncHandler(http.server.BaseHTTPRequestHandler):
             'acertos_quiz': matches,
             'total_quiz': len(quizzes_with_answers),
         })
+
+    # ==================== UBER ====================
+
+    def _uber_get_settings(self):
+        claims = self._auth_claims()
+        if not claims:
+            return self._json(401, {'ok': False, 'error': 'não autenticado'})
+        code = claims['couple']
+        conn = db.get_conn()
+        row = conn.execute('SELECT data FROM uber_settings WHERE couple_code=?', (code,)).fetchone()
+        conn.close()
+        if not row:
+            return self._json(200, {'ok': True, 'settings': None})
+        self._json(200, {'ok': True, 'settings': json.loads(row['data'])})
+
+    def _uber_save_settings(self):
+        claims = self._auth_claims()
+        if not claims:
+            return self._json(401, {'ok': False, 'error': 'não autenticado'})
+        code = claims['couple']
+        body = self._read_json()
+        settings = body.get('settings', {})
+        conn = db.get_conn()
+        conn.execute(
+            'INSERT INTO uber_settings (couple_code, data, updated_at) VALUES (?, ?, ?) '
+            'ON CONFLICT(couple_code) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at',
+            (code, json.dumps(settings, ensure_ascii=False), _now_iso()),
+        )
+        conn.commit()
+        conn.close()
+        self._json(200, {'ok': True})
+
+    def _uber_get_sessions(self):
+        claims = self._auth_claims()
+        if not claims:
+            return self._json(401, {'ok': False, 'error': 'não autenticado'})
+        code = claims['couple']
+        conn = db.get_conn()
+        rows = conn.execute(
+            'SELECT session_id, data FROM uber_sessions WHERE couple_code=? ORDER BY id DESC LIMIT 200',
+            (code,),
+        ).fetchall()
+        conn.close()
+        sessions = [{'id': r['session_id'], **json.loads(r['data'])} for r in rows]
+        self._json(200, {'ok': True, 'sessions': sessions})
+
+    def _uber_save_session(self):
+        claims = self._auth_claims()
+        if not claims:
+            return self._json(401, {'ok': False, 'error': 'não autenticado'})
+        code = claims['couple']
+        body = self._read_json()
+        session_id = body.get('id', '')
+        session_data = body.get('session', {})
+        if not session_id:
+            return self._json(400, {'ok': False, 'error': 'id obrigatório'})
+        conn = db.get_conn()
+        conn.execute(
+            'INSERT INTO uber_sessions (couple_code, session_id, data, created_at) VALUES (?, ?, ?, ?) '
+            'ON CONFLICT(couple_code, session_id) DO UPDATE SET data=excluded.data',
+            (code, session_id, json.dumps(session_data, ensure_ascii=False), _now_iso()),
+        )
+        conn.commit()
+        conn.close()
+        self._json(200, {'ok': True})
+
+    def _uber_get_overrides(self):
+        claims = self._auth_claims()
+        if not claims:
+            return self._json(401, {'ok': False, 'error': 'não autenticado'})
+        code = claims['couple']
+        conn = db.get_conn()
+        rows = conn.execute(
+            'SELECT date, override_type, reason FROM uber_overrides WHERE couple_code=? ORDER BY date DESC',
+            (code,),
+        ).fetchall()
+        conn.close()
+        overrides = [{'date': r['date'], 'overrideType': r['override_type'], 'reason': r['reason']} for r in rows]
+        self._json(200, {'ok': True, 'overrides': overrides})
+
+    def _uber_save_override(self):
+        claims = self._auth_claims()
+        if not claims:
+            return self._json(401, {'ok': False, 'error': 'não autenticado'})
+        code = claims['couple']
+        body = self._read_json()
+        date = body.get('date', '')
+        override_type = body.get('overrideType', '')
+        reason = body.get('reason', '')
+        if not date or not override_type:
+            return self._json(400, {'ok': False, 'error': 'date e overrideType obrigatórios'})
+        if override_type == 'delete':
+            conn = db.get_conn()
+            conn.execute('DELETE FROM uber_overrides WHERE couple_code=? AND date=?', (code, date))
+            conn.commit()
+            conn.close()
+            return self._json(200, {'ok': True})
+        conn = db.get_conn()
+        conn.execute(
+            'INSERT INTO uber_overrides (couple_code, date, override_type, reason, created_at) VALUES (?, ?, ?, ?, ?) '
+            'ON CONFLICT(couple_code, date) DO UPDATE SET override_type=excluded.override_type, reason=excluded.reason',
+            (code, date, override_type, reason, _now_iso()),
+        )
+        conn.commit()
+        conn.close()
+        self._json(200, {'ok': True})
 
 
 def _now_iso():

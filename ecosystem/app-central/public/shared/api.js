@@ -48,6 +48,14 @@
       moodToday: () => global.LifeAPI.get('/diary/mood/today'),
       moodList: () => global.LifeAPI.get('/diary/mood'),
       stats: () => global.LifeAPI.get('/diary/stats')
+    },
+    uber: {
+      getSettings: () => global.LifeAPI.get('/uber/settings'),
+      saveSettings: (payload) => global.LifeAPI.post('/uber/settings', payload),
+      getSessions: () => global.LifeAPI.get('/uber/sessions'),
+      saveSession: (payload) => global.LifeAPI.post('/uber/sessions', payload),
+      getOverrides: () => global.LifeAPI.get('/uber/overrides'),
+      saveOverride: (payload) => global.LifeAPI.post('/uber/overrides', payload)
     }
   };
 })(window);
