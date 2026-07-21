@@ -217,6 +217,9 @@ function QuizCasalPage() {
         .qz-serif { font-family: 'Fraunces', serif; }
         .qz-mono { font-family: 'JetBrains Mono', monospace; }
         .qz-card { background:#fffdfc; border-radius:20px; border:1.5px solid #f0ddd6; box-shadow:0 2px 12px rgba(180,120,110,0.07); padding:16px; }
+        .qz-back { font-size:13px; color:#a8938e; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px; text-decoration:none; padding:8px 0; background:none; border:none; font-family:inherit; -webkit-tap-highlight-color:transparent; }
+        .qz-toggle { border:none; background:none; font-family:inherit; font-size:13.5px; font-weight:800; color:#4a3634; cursor:pointer; display:flex; justify-content:space-between; align-items:center; width:100%; padding:0; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+        .qz-toggle:active { opacity:0.6; }
         .qz-spotlight { position:relative; overflow:hidden; padding:22px; border-radius:24px; }
         .qz-opcao { display:flex; align-items:center; gap:12px; padding:13px 14px; border-radius:16px; margin-top:10px; background:rgba(255,255,255,0.16); border:1.5px solid rgba(255,255,255,0.3); cursor:pointer; color:white; transition:background .15s ease; width:100%; text-align:left; font-family:inherit; font-size:inherit; -webkit-tap-highlight-color:transparent; touch-action:manipulation; user-select:none; -webkit-user-select:none; min-height:48px; }
         .qz-opcao:active { background:rgba(255,255,255,0.3); transform:scale(0.98); }
