@@ -13,13 +13,27 @@ function LoginPage() {
   useEffect(() => {
     if (LifeStore.getAuth().token) {
       window.location.href = '/hub.html';
+      return;
+    }
+    const saved = localStorage.getItem('lastCoupleCode');
+    if (saved) {
+      setCodigoDigitado(saved);
     }
   }, []);
 
   function irPara(t) { setErro(''); setTela(t); }
 
   function guardarAuth(data) {
-    LifeStore.saveAuth({ token: data.token, couple: codigoDigitado || codigo, user: usuario });
+    const code = LifeSecurity.normalizeCoupleCode(codigoDigitado || codigo);
+    LifeStore.saveAuth({ token: data.token, couple: code, user: usuario });
+    localStorage.setItem('lastCoupleCode', code);
+  }
+
+  function handleEnter(e, action) {
+    if (e.key === 'Enter' && !carregando) {
+      e.preventDefault();
+      action();
+    }
   }
 
   async function esqueciCodigo() {
@@ -88,6 +102,7 @@ function LoginPage() {
         .lg-mono { font-family: 'JetBrains Mono', monospace; }
         .lg-card { background:#fffdfc; border-radius:20px; border:1.5px solid #f0ddd6; box-shadow:0 2px 12px rgba(180,120,110,0.07); }
         .lg-btn-primary { border:none; background:#a8544a; color:white; font-weight:800; border-radius:14px; padding:13px; font-size:14.5px; cursor:pointer; width:100%; display:flex; align-items:center; justify-content:center; gap:8px; font-family:inherit; }
+        .lg-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
         .lg-btn-outline { border:1.5px solid #f0ddd6; background:#fffdfc; color:#4a3634; font-weight:800; border-radius:14px; padding:13px; font-size:14.5px; cursor:pointer; width:100%; display:flex; align-items:center; justify-content:center; gap:8px; font-family:inherit; }
         .lg-input { width:100%; border:1.5px solid #f0ddd6; border-radius:12px; padding:12px 14px; font-family:'Nunito',sans-serif; font-size:14px; color:#4a3634; outline:none; }
         .lg-input:focus { border-color:#a8544a; }
@@ -116,7 +131,7 @@ function LoginPage() {
             <button className="lg-back" onClick={() => irPara('inicio')}>← voltar</button>
             <div style={{ fontSize: 15, fontWeight: 700, color: '#4a3634', marginTop: 14, marginBottom: 14 }}>Esqueci meu código</div>
             <label className="lg-label">Usuário</label>
-            <input className="lg-input" placeholder="seu nome" value={usuario} onChange={(e) => setUsuario(e.target.value)} />
+            <input className="lg-input" placeholder="seu nome" value={usuario} onChange={(e) => setUsuario(e.target.value)} onKeyDown={(e) => handleEnter(e, esqueciCodigo)} />
             {erro && <div className="lg-error" style={{ marginTop: 12 }}>{erro}</div>}
             <button className="lg-btn-primary" style={{ marginTop: 16 }} onClick={esqueciCodigo} disabled={carregando}>{carregando ? 'Buscando...' : 'Buscar código'}</button>
           </div>
@@ -135,11 +150,11 @@ function LoginPage() {
             <button className="lg-back" onClick={() => irPara('inicio')}>← voltar</button>
             <div style={{ fontSize: 15, fontWeight: 700, color: '#4a3634', marginTop: 14, marginBottom: 14 }}>Entrar na conta</div>
             <label className="lg-label">Código do casal</label>
-            <input className="lg-input codigo" maxLength={6} placeholder="XXXXXX" value={codigoDigitado} onChange={(e) => setCodigoDigitado(e.target.value.toUpperCase())} style={{ marginBottom: 12 }} />
+            <input className="lg-input codigo" maxLength={6} placeholder="XXXXXX" value={codigoDigitado} onChange={(e) => setCodigoDigitado(e.target.value.toUpperCase())} onKeyDown={(e) => handleEnter(e, () => document.querySelector('.lg-card .lg-input:not(.codigo)')?.focus())} style={{ marginBottom: 12 }} />
             <label className="lg-label">Usuário</label>
-            <input className="lg-input" placeholder="seu nome" value={usuario} onChange={(e) => setUsuario(e.target.value)} style={{ marginBottom: 10 }} />
+            <input className="lg-input" placeholder="seu nome" value={usuario} onChange={(e) => setUsuario(e.target.value)} onKeyDown={(e) => handleEnter(e, () => document.querySelector('.lg-card input[type=password]')?.focus())} style={{ marginBottom: 10 }} />
             <label className="lg-label">Senha</label>
-            <input className="lg-input" type="password" placeholder="sua senha" value={senha} onChange={(e) => setSenha(e.target.value)} />
+            <input className="lg-input" type="password" placeholder="sua senha" value={senha} onChange={(e) => setSenha(e.target.value)} onKeyDown={(e) => handleEnter(e, entrar)} />
             {erro && <div className="lg-error" style={{ marginTop: 12 }}>{erro}</div>}
             <button className="lg-btn-primary" style={{ marginTop: 16 }} onClick={entrar} disabled={carregando}>{carregando ? 'Entrando...' : 'Entrar'}</button>
           </div>
@@ -152,9 +167,9 @@ function LoginPage() {
             <div style={{ fontSize: 11.5, color: '#a8938e', textAlign: 'center', marginTop: 10 }}>Guarde ou compartilhe com seu par.</div>
             <div style={{ height: 18 }} />
             <label className="lg-label">Usuário</label>
-            <input className="lg-input" placeholder="ex: jose" value={usuario} onChange={(e) => setUsuario(e.target.value)} style={{ marginBottom: 10 }} />
+            <input className="lg-input" placeholder="ex: jose" value={usuario} onChange={(e) => setUsuario(e.target.value)} onKeyDown={(e) => handleEnter(e, () => document.querySelector('.lg-card input[type=password]')?.focus())} style={{ marginBottom: 10 }} />
             <label className="lg-label">Senha</label>
-            <input className="lg-input" type="password" placeholder="mín. 4 caracteres" value={senha} onChange={(e) => setSenha(e.target.value)} />
+            <input className="lg-input" type="password" placeholder="mín. 4 caracteres" value={senha} onChange={(e) => setSenha(e.target.value)} onKeyDown={(e) => handleEnter(e, registrar)} />
             {erro && <div className="lg-error" style={{ marginTop: 12 }}>{erro}</div>}
             <button className="lg-btn-primary" style={{ marginTop: 16 }} onClick={registrar} disabled={carregando}>{carregando ? 'Criando...' : 'Criar conta e entrar'}</button>
           </div>
@@ -163,7 +178,7 @@ function LoginPage() {
           <div className="lg-card" style={{ padding: 24, marginTop: 20 }}>
             <button className="lg-back" onClick={() => irPara('inicio')}>← voltar</button>
             <div style={{ fontSize: 15, fontWeight: 700, color: '#4a3634', marginTop: 14, marginBottom: 12 }}>Digite o código do casal</div>
-            <input className="lg-input codigo" maxLength={6} placeholder="XXXXXX" value={codigoDigitado} onChange={(e) => setCodigoDigitado(e.target.value.toUpperCase())} />
+            <input className="lg-input codigo" maxLength={6} placeholder="XXXXXX" value={codigoDigitado} onChange={(e) => setCodigoDigitado(e.target.value.toUpperCase())} onKeyDown={(e) => handleEnter(e, () => { setCodigo(codigoDigitado); irPara('registrar'); })} />
             {erro && <div className="lg-error" style={{ marginTop: 12 }}>{erro}</div>}
             <button className="lg-btn-primary" style={{ marginTop: 16 }} onClick={() => { setCodigo(codigoDigitado); irPara('registrar'); }}>Continuar</button>
           </div>
@@ -174,9 +189,9 @@ function LoginPage() {
             <div style={{ fontSize: 12, color: '#a8938e', marginTop: 14, marginBottom: 4 }}>Casal</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#a8544a', marginBottom: 16, letterSpacing: 2 }}>{codigoDigitado}</div>
             <label className="lg-label">Usuário</label>
-            <input className="lg-input" placeholder="ex: jose" value={usuario} onChange={(e) => setUsuario(e.target.value)} style={{ marginBottom: 10 }} />
+            <input className="lg-input" placeholder="ex: jose" value={usuario} onChange={(e) => setUsuario(e.target.value)} onKeyDown={(e) => handleEnter(e, () => document.querySelector('.lg-card input[type=password]')?.focus())} style={{ marginBottom: 10 }} />
             <label className="lg-label">Senha</label>
-            <input className="lg-input" type="password" placeholder="mín. 4 caracteres" value={senha} onChange={(e) => setSenha(e.target.value)} />
+            <input className="lg-input" type="password" placeholder="mín. 4 caracteres" value={senha} onChange={(e) => setSenha(e.target.value)} onKeyDown={(e) => handleEnter(e, registrar)} />
             {erro && <div className="lg-error" style={{ marginTop: 12 }}>{erro}</div>}
             <button className="lg-btn-primary" style={{ marginTop: 16 }} onClick={registrar} disabled={carregando}>{carregando ? 'Criando...' : 'Criar conta e entrar'}</button>
           </div>
