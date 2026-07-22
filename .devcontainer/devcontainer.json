@@ -4,7 +4,9 @@
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
-  "postCreateCommand": "chmod +x start.sh && docker compose up -d --build",
+  "runArgs": ["--privileged"],
+  "postCreateCommand": "chmod +x start.sh",
+  "postStartCommand": "docker compose up -d --build && docker compose ps",
   "forwardPorts": [8080, 8384],
   "portsAttributes": {
     "8080": {
