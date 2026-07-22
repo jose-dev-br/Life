@@ -31,8 +31,6 @@
 		reverse_proxy app-saude:80
 	}
 
-
-
 	handle {
 		reverse_proxy app-central:80
 	}
