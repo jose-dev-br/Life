@@ -35,6 +35,8 @@ CREATE TABLE IF NOT EXISTS events (
     event_id TEXT NOT NULL,
     type TEXT NOT NULL,
     payload TEXT NOT NULL,
+    user_id TEXT NOT NULL DEFAULT '',
+    device_id TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL,
     UNIQUE(couple_code, event_id)
 );

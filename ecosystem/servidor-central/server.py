@@ -234,12 +234,13 @@ class SyncHandler(http.server.BaseHTTPRequestHandler):
         for ev in eventos:
             try:
                 conn.execute(
-                    'INSERT INTO events (couple_code, event_id, type, payload, created_at) VALUES (?, ?, ?, ?, ?)',
-                    (code, ev['id'], ev['type'], json.dumps(ev.get('payload', {}), ensure_ascii=False), ev.get('createdAt') or _now_iso()),
+                    'INSERT INTO events (couple_code, event_id, type, payload, user_id, device_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    (code, ev['id'], ev['type'], json.dumps(ev.get('payload', {}), ensure_ascii=False),
+                     ev.get('userId', ''), ev.get('deviceId', ''), ev.get('createdAt') or _now_iso()),
                 )
                 novos += 1
             except Exception:
-                pass  # já existe (UNIQUE) -- sync é idempotente, ignora duplicado
+                pass
         conn.commit()
         conn.close()
         self._json(200, {'ok': True, 'recebidos': novos})
@@ -307,18 +308,27 @@ class SyncHandler(http.server.BaseHTTPRequestHandler):
     def _sync_get(self):
         query = parse_qs(urlparse(self.path).query)
         code = (query.get('couple') or [''])[0].strip().upper()
+        since = (query.get('since') or [''])[0].strip()
         claims = self._auth_claims()
         if not claims or claims.get('couple') != code:
             return self._json(401, {'ok': False, 'error': 'não autenticado'})
 
         conn = db.get_conn()
-        rows = conn.execute(
-            'SELECT event_id, type, payload, created_at FROM events WHERE couple_code=? ORDER BY id ASC', (code,)
-        ).fetchall()
+        if since:
+            rows = conn.execute(
+                'SELECT event_id, type, payload, user_id, device_id, created_at FROM events WHERE couple_code=? AND created_at > ? ORDER BY id ASC',
+                (code, since),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                'SELECT event_id, type, payload, user_id, device_id, created_at FROM events WHERE couple_code=? ORDER BY id ASC',
+                (code,),
+            ).fetchall()
         conn.close()
 
         eventos = [
-            {'id': r['event_id'], 'type': r['type'], 'payload': json.loads(r['payload']), 'createdAt': r['created_at']}
+            {'id': r['event_id'], 'type': r['type'], 'payload': json.loads(r['payload']),
+             'userId': r['user_id'], 'deviceId': r['device_id'], 'createdAt': r['created_at']}
             for r in rows
         ]
         self._json(200, {'ok': True, 'events': eventos})

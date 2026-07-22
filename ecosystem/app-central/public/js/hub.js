@@ -20,6 +20,16 @@ function HubPage() {
       window.location.href = '/';
       return;
     }
+    if (typeof LifeSync !== 'undefined') {
+      LifeSync.init();
+    }
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (e) => {
+        if (e.data && e.data.type === 'SYNC_TRIGGER' && typeof LifeSync !== 'undefined') {
+          LifeSync.doSync();
+        }
+      });
+    }
     const t = setTimeout(() => setEntrou(true), 60);
     async function load() {
       try {
