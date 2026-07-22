@@ -6,7 +6,7 @@
   },
   "runArgs": ["--privileged"],
   "postCreateCommand": "chmod +x start.sh",
-  "postStartCommand": "docker compose up -d --build && docker compose ps",
+  "postStartCommand": "docker compose up -d --build && docker compose ps && sleep 3 && docker cp seed_db.py projeto-servidor-central-1:/app/seed_db.py && docker exec projeto-servidor-central-1 python3 seed_db.py",
   "forwardPorts": [8080, 8384],
   "portsAttributes": {
     "8080": {
