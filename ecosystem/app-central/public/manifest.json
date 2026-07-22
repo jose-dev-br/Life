@@ -1,0 +1,14 @@
+{
+  "name": "Jornada do Casal",
+  "short_name": "Jornada",
+  "description": "App do casal — diário, uber, jogos e saúde",
+  "start_url": "/hub.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#faf1ee",
+  "theme_color": "#a8544a",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
