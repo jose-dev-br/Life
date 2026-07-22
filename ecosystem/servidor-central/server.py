@@ -209,7 +209,7 @@ class SyncHandler(http.server.BaseHTTPRequestHandler):
 
         conn = db.get_conn()
         row = conn.execute(
-            'SELECT password_hash FROM users WHERE couple_code=? AND username=?', (code, username)
+            'SELECT password_hash FROM users WHERE couple_code=? AND LOWER(username)=LOWER(?)', (code, username)
         ).fetchone()
         conn.close()
 
