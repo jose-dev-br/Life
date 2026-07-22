@@ -12,10 +12,17 @@ BACKUP = {
     "couples": [
         {"code": "ENJS4Q", "created_at": "2026-07-19T15:53:45Z"},
     ],
-    "users": [
-        {"couple_code": "ENJS4Q", "username": "Jose", "password_hash": "pbkdf2_sha256$120000$65dd9c1be164d66e2d0c999fcd1d215d$ec50d0bdc4f2fbcfe8bc60f6deef8c3ed1a79995ab10078332b02886a8db77cf", "created_at": "2026-07-19T14:53:54Z"},
-        {"couple_code": "ENJS4Q", "username": "Fernanda", "password_hash": "pbkdf2_sha256$120000$c536215b91cb9f1033ebb58da4cd49af$c2407d6b3d43770b7209b22cf0b81a8c39ad1bbad75a4c13444d006d72748060", "created_at": "2026-07-19T15:00:23Z"},
-    ],
+    users_data = [
+        {"couple_code": "ENJS4Q", "username": "Jose", "created_at": "2026-07-19T14:53:54Z"},
+        {"couple_code": "ENJS4Q", "username": "Fernanda", "created_at": "2026-07-19T15:00:23Z"},
+    ]
+    for u in users_data:
+        try:
+            pw_hash = auth.hash_password("1234")
+            conn.execute("INSERT INTO users (couple_code, username, password_hash, created_at) VALUES (?, ?, ?, ?)",
+                         (u["couple_code"], u["username"], pw_hash, u["created_at"]))
+        except Exception:
+            pass
     "quiz_questions": [
         {"couple_code": "ENJS4Q", "pergunta": "Qual atividade vocês mais gostam de fazer juntos?", "opcoes": json.dumps([{"id": "a", "emoji": "🍳", "texto": "Cozinhar"}, {"id": "b", "emoji": "🎵", "texto": "Ouvir música"}, {"id": "c", "emoji": "🚶", "texto": "Caminhar"}, {"id": "d", "emoji": "📺", "texto": "Assistir série"}], ensure_ascii=False), "created_at": "2026-07-19T15:38:44Z"},
         {"couple_code": "ENJS4Q", "pergunta": "Se vocês fossem um casal de filme, qual seria o gênero?", "opcoes": json.dumps([{"id": "a", "emoji": "😂", "texto": "Comédia romântica"}, {"id": "b", "emoji": "🎬", "texto": "Drama épico"}, {"id": "c", "emoji": "", "texto": "Aventura"}, {"id": "d", "emoji": "✨", "texto": "Fantasia"}], ensure_ascii=False), "created_at": "2026-07-20T15:25:21Z"},
@@ -45,10 +52,11 @@ def seed():
         except Exception:
             pass
 
-    for u in BACKUP["users"]:
+    for u in users_data:
         try:
+            pw_hash = auth.hash_password("1234")
             conn.execute("INSERT INTO users (couple_code, username, password_hash, created_at) VALUES (?, ?, ?, ?)",
-                         (u["couple_code"], u["username"], u["password_hash"], u["created_at"]))
+                         (u["couple_code"], u["username"], pw_hash, u["created_at"]))
         except Exception:
             pass
 
