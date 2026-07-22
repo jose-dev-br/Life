@@ -746,6 +746,7 @@ def _now_iso():
 
 if __name__ == '__main__':
     db.init_db()
+    db.start_backup_thread()
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.ThreadingTCPServer(('', PORT), SyncHandler) as httpd:
         print(f'Servidor rodando em http://localhost:{PORT}')

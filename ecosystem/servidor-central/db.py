@@ -1,12 +1,14 @@
 """
 db.py — SQLite como fonte única de verdade, no lugar do events.jsonl por
 arquivo. Com 3 frontends podendo escrever ao mesmo tempo, um arquivo só
-sem transação virava risco de corrida; SQLite com WAL resolve isso de
+sem transação viraria risco de corrida; SQLite com WAL resolve isso de
 graça, sem precisar de Postgres nem de um container a mais.
 """
 import sqlite3
 import os
 import threading
+import time
+import glob
 
 DB_PATH = os.environ.get('JORNADA_DB_PATH', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'jornada.db'))
 
@@ -140,3 +142,46 @@ def init_db():
         conn.executescript(SCHEMA)
         conn.commit()
         conn.close()
+
+
+BACKUP_DIR = os.path.join(os.path.dirname(DB_PATH), 'backups')
+BACKUP_MAX = 24  # manter apenas os ultimos 24 backups (1 por hora)
+
+
+def _fazer_backup():
+    """Copia o banco atual para data/backups/jornada_YYYY-MM-DD_HH.db"""
+    try:
+        os.makedirs(BACKUP_DIR, exist_ok=True)
+        ts = time.strftime('%Y-%m-%d_%H')
+        dest_path = os.path.join(BACKUP_DIR, f'jornada_{ts}.db')
+
+        src = sqlite3.connect(DB_PATH, timeout=10)
+        dst = sqlite3.connect(dest_path, timeout=10)
+        with dst:
+            src.backup(dst)
+        dst.close()
+        src.close()
+
+        # Limpa backups antigos (mantem os mais recentes)
+        backups = sorted(glob.glob(os.path.join(BACKUP_DIR, 'jornada_*.db')))
+        while len(backups) > BACKUP_MAX:
+            os.remove(backups.pop(0))
+
+        print(f'[backup] {dest_path}')
+    except Exception as e:
+        print(f'[backup] ERRO: {e}')
+
+
+def _backup_loop():
+    """Loop infinito: backup a cada 1 hora."""
+    while True:
+        time.sleep(3600)  # 1 hora
+        _fazer_backup()
+
+
+def start_backup_thread():
+    """Inicia a thread de backup em background."""
+    t = threading.Thread(target=_backup_loop, daemon=True)
+    t.start()
+    # Backup imediato ao iniciar
+    _fazer_backup()

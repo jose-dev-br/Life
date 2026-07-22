@@ -13,7 +13,7 @@ import secrets
 
 PBKDF2_ITERATIONS = 120_000
 JWT_SECRET_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'jwt_secret.key')
-JWT_TTL_SECONDS = 7 * 24 * 3600  # 7 dias
+JWT_TTL_SECONDS = 30 * 24 * 3600  # 30 dias
 
 
 def _get_jwt_secret():
