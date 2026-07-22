@@ -47,8 +47,9 @@ services:
     volumes:
       - ./syncthing/config:/config
       - ./syncthing/retroarch_saves:/saves
+    ports:
+      - "8384:8384"
     expose:
-      - "8384"
       - "22000/tcp"
       - "22000/udp"
     restart: unless-stopped
@@ -66,7 +67,6 @@ services:
       - app-uber
       - app-jogos
       - app-saude
-      - syncthing
     restart: unless-stopped
 
 volumes:

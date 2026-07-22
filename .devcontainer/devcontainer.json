@@ -5,11 +5,15 @@
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
   "postCreateCommand": "chmod +x start.sh && docker compose up -d --build",
-  "forwardPorts": [8080],
+  "forwardPorts": [8080, 8384],
   "portsAttributes": {
     "8080": {
       "label": "App",
       "onAutoForward": "openBrowser"
+    },
+    "8384": {
+      "label": "Syncthing",
+      "onAutoForward": "ignore"
     }
   },
   "customizations": {
